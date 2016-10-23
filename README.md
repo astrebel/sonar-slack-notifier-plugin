@@ -1,3 +1,6 @@
+### This plugin is not continued... ###
+Check out https://github.com/kogitant/sonar-slack-notifier-plugin for sonarqube 5.5+
+
 # sonar-slack-notifier-plugin
 SonarQube plugin for sending notifications to Slack
 
