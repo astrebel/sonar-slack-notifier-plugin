@@ -4,6 +4,8 @@ public class SlackMessage {
 
 	private String channel;
 	private String slackUser;
+	private String serverBaseUrl;
+	private String projectKey;
 	private String shortText;
 	private SlackAttachment attachment;
 	
@@ -25,6 +27,18 @@ public class SlackMessage {
 	}
 	public void setChannel(String channel) {
 		this.channel = channel;
+	}
+	public void setServerBaseUrl(String serverBaseUrl) {
+		this.serverBaseUrl = serverBaseUrl;
+	}
+	public String getServerBaseUrl() {
+		return serverBaseUrl;
+	}
+	public void setProjectKey(String projectKey) {
+		this.projectKey = projectKey;
+	}
+	public String getProjectKey() {
+		return projectKey;
 	}
 	public String getSlackUser() {
 		return slackUser;

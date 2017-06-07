@@ -11,6 +11,8 @@ import org.sonar.api.resources.Qualifiers;
 
 public class SlackNotifierPlugin extends SonarPlugin {
 	
+	public static final String SONAR_SERVER_BASE_URL = "sonar.core.serverBaseURL";
+	
 	public static final String SLACK_HOOK = "slack.hook";
 	public static final String SLACK_CHANNEL = "slack.channel";
 	public static final String SLACK_SLACKUSER = "slack.slackuser";
@@ -48,6 +50,7 @@ public class SlackNotifierPlugin extends SonarPlugin {
 					.build());
 	}
 
+	@Override
 	public List<Object> getExtensions() {
 		List<Object> extensions = new ArrayList<>();
 		extensions.add(SlackNotificationChannel.class);

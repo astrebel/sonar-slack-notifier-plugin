@@ -1,8 +1,15 @@
 package com.astrebel.sonarslack.message;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
 import java.text.MessageFormat;
 
+import org.sonar.api.utils.log.Logger;
+import org.sonar.api.utils.log.Loggers;
+
+
 public class SlackMessageBuilder {
+	private static final Logger LOG = Loggers.get(SlackMessageBuilder.class);
 
 	public String build(SlackMessage message) {
 		StringBuilder builder = new StringBuilder();
@@ -18,12 +25,28 @@ public class SlackMessageBuilder {
 		builder.append("\",");
 		builder.append("\"text\":\"");
 		builder.append(message.getShortText().replace("\n", "").replace("\r", ""));
+		if (!buildSonarLink(message).isEmpty()) {
+			builder.append(MessageFormat.format("\\n<{0}|Go to SonarQube>", buildSonarLink(message)));
+		}
 		builder.append("\"");
 
 		builder.append(buildAttachment(message.getAttachment()));
 		builder.append("}");
 
 		return builder.toString();
+	}
+	
+	private String buildSonarLink(SlackMessage message) {
+		String serverBaseUrl = message.getServerBaseUrl() != null ? message.getServerBaseUrl().trim() : "";
+		String projectKey = message.getServerBaseUrl() != null ? message.getProjectKey().trim() : "";
+		if (serverBaseUrl.isEmpty()) { return ""; }
+		
+		try {
+			return serverBaseUrl + "/overview?id=" + URLEncoder.encode(projectKey, "UTF-8");
+		} catch (UnsupportedEncodingException e) {
+			LOG.error("Failed to urlEncode the projectKey", e);
+			return serverBaseUrl;
+		}
 	}
 	
 	private String buildAttachment(SlackAttachment attachment) {
