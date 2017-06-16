@@ -26,6 +26,7 @@ public class SlackNotificationChannelTest {
 		slackClient = Mockito.mock(SlackClient.class);
 		
 		Mockito.when(settings.getString(SlackNotifierPlugin.SLACK_HOOK)).thenReturn("test.hook");
+		Mockito.when(settings.getStringArray(SlackNotifierPlugin.SLACK_PROJECTS)).thenReturn(new String[0]);
 		Mockito.when(slackClient.toString()).thenReturn("slackClient");
 		
 		channel = new SlackNotificationChannel(slackClient, settings);
@@ -46,7 +47,7 @@ public class SlackNotificationChannelTest {
 
 	@Test
 	public void testNotificationWithChannel() {
-		Mockito.when(settings.getString(SlackNotifierPlugin.SLACK_CHANNEL)).thenReturn("test.channel");
+		Mockito.when(settings.getString(SlackNotifierPlugin.SLACK_CHANNELS_DEFAULT)).thenReturn("test.channel");
 		
 		Notification notification = new Notification(NOTIFICATION_TYPE);
 		notification.setDefaultMessage("This is the test channel message");
