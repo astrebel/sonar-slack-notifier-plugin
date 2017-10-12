@@ -17,6 +17,7 @@ public class SlackNotifierPlugin extends SonarPlugin {
 	public static final String SLACK_SLACKUSER = "slack.slackuser";
 	public static final String SLACK_CHANNELS_DEFAULT = "slack.channel";
 	public static final String SLACK_PROJECTS = "slack.projects";
+	public static final String SLACK_SEVERITY_THRESHOLD = "slack.severitythreshold";
 	public static final String SLACK_PROJECTS_KEY = "key";
 	public static final String SLACK_PROJECTS_CHANNEL = "channel";
 	
@@ -44,18 +45,27 @@ public class SlackNotifierPlugin extends SonarPlugin {
 					.index(1)
 					.type(PropertyType.STRING)
 					.build(),
+				PropertyDefinition.builder(SLACK_SEVERITY_THRESHOLD)
+					.name("Slack Severity Threshold")
+					.description("Threshold used to suppress notifications for new issues with low severity.")
+					.category(SLACK_CATEGORY)
+					.index(2)
+					.options(Severity.getOptions())
+					.type(PropertyType.SINGLE_SELECT_LIST)
+					.defaultValue(Severity.INFO.name())
+					.build(),
 				PropertyDefinition.builder(SLACK_CHANNELS_DEFAULT)
 					.name("Default Channel")
 					.description("Default channel (#channel_name) where the notification should be sent to if no project specific channel applies.")
 					.category(SLACK_CATEGORY)
-					.index(2)
+					.index(3)
 					.type(PropertyType.STRING)
 					.build(),
 				PropertyDefinition.builder(SLACK_PROJECTS)
 					.name("Project Channels")
 					.description("Project specific channels. If no project specific channel is configured for a project, the notification will be sent to the default channel.")
 					.category(SLACK_CATEGORY)
-					.index(3)
+					.index(4)
 					.fields(
 						PropertyFieldDefinition.build(SLACK_PROJECTS_KEY)
 							.name("Project Key")

@@ -35,6 +35,7 @@ public class SlackNotificationChannel extends NotificationChannel {
 		String hook = settings.getString(SlackNotifierPlugin.SLACK_HOOK);
 		String slackUser = settings.getString(SlackNotifierPlugin.SLACK_SLACKUSER);
 		String defaultChannel = settings.getString(SlackNotifierPlugin.SLACK_CHANNELS_DEFAULT);
+		Severity severityThreshold = Severity.valueOrDefault(settings.getString(SlackNotifierPlugin.SLACK_SEVERITY_THRESHOLD));
 		
 		if(hook == null) {
 			return;
@@ -43,59 +44,72 @@ public class SlackNotificationChannel extends NotificationChannel {
 		Map<String, ProjectConfiguration> projectConfigurations = readProjectConfigurations(settings);
 		final String projectKey = notification.getFieldValue("projectKey");
 		String channel = getProjectChannel(projectConfigurations, projectKey, defaultChannel);
-		LOG.info(MessageFormat.format("New notification (Channel {0}, User: {1}): {2}", channel, slackUser, notification.toString()));
+		LOG.info(MessageFormat.format("New notification (Channel {0}, User: {1}): {2}", channel, slackUser, notification));
 		
 		String defaultMessage = notification.getFieldValue("default_message");
-		if(defaultMessage != null) {
-			SlackMessage message = new SlackMessage(defaultMessage, slackUser);
-			message.setProjectKey(projectKey);
-			message.setChannel(channel);
-			message.setServerBaseUrl(serverBaseUrl);
-			
-			 if ("alerts".equals(notification.getType())) {
-				 String alertLevel = notification.getFieldValue("alertLevel");
-				 String alertName = notification.getFieldValue("alertName");
-				 String alertText = notification.getFieldValue("alertText");
-				 
-				 SlackAttachmentType type = SlackAttachmentType.WARNING;
-				 if("ERROR".equalsIgnoreCase(alertLevel)) {
-					type = SlackAttachmentType.DANGER;
-				 }
-				 
-				 SlackAttachment attachment = new SlackAttachment(type);
-				 attachment.setTitle(alertName);
-				 attachment.setReasons(alertText);
-				 
-				 message.setAttachment(attachment);
+		if(defaultMessage == null) {
+			return;
+		}
+		
+		SlackMessage message = new SlackMessage(defaultMessage, slackUser);
+		message.setProjectKey(projectKey);
+		message.setChannel(channel);
+		message.setServerBaseUrl(serverBaseUrl);
+		
+		if ("alerts".equals(notification.getType())) {
+			 String alertLevel = notification.getFieldValue("alertLevel");
+			 String alertName = notification.getFieldValue("alertName");
+			 String alertText = notification.getFieldValue("alertText");
+			 
+			 SlackAttachmentType type = SlackAttachmentType.WARNING;
+			 if("ERROR".equalsIgnoreCase(alertLevel)) {
+				type = SlackAttachmentType.DANGER;
 			 }
 			 
-			 if ("new-issues".equals(notification.getType())){
-				 String countBlockers = getOrDefaultZero(notification.getFieldValue("SEVERITY.BLOCKER.count"));
-				 String countCriticals = getOrDefaultZero(notification.getFieldValue("SEVERITY.CRITICAL.count"));
-				 String countMajors = getOrDefaultZero(notification.getFieldValue("SEVERITY.MAJOR.count"));
-				 String countMinors = getOrDefaultZero(notification.getFieldValue("SEVERITY.MINOR.count"));
-				 String countInfos = getOrDefaultZero(notification.getFieldValue("SEVERITY.INFO.count"));
-				 
-				 SlackAttachmentType type = SlackAttachmentType.WARNING;
-				 if (!"00".equals(countCriticals + countBlockers)) {
-					 type = SlackAttachmentType.DANGER;
-				 }
-				 
-				 SlackAttachment attachment = new SlackAttachment(type);
-				 attachment.setTitle("New Rule Violations");
-				 attachment.setReasons(MessageFormat.format(
-						 "Blocker: {0}, Critical: {1}, Major: {2}, Minor: {3}, Info: {4}",
-						 countBlockers,
-						 countCriticals,
-						 countMajors,
-						 countMinors,
-						 countInfos));
-				 
-				 message.setAttachment(attachment);
+			 SlackAttachment attachment = new SlackAttachment(type);
+			 attachment.setTitle(alertName);
+			 attachment.setReasons(alertText);
+			 
+			 message.setAttachment(attachment);
+		 }
+		 
+		 if ("new-issues".equals(notification.getType())){
+			 int countBlockers = getOrDefaultZero(notification.getFieldValue("SEVERITY.BLOCKER.count"));
+			 int countCriticals = getOrDefaultZero(notification.getFieldValue("SEVERITY.CRITICAL.count"));
+			 int countMajors = getOrDefaultZero(notification.getFieldValue("SEVERITY.MAJOR.count"));
+			 int countMinors = getOrDefaultZero(notification.getFieldValue("SEVERITY.MINOR.count"));
+			 int countInfos = getOrDefaultZero(notification.getFieldValue("SEVERITY.INFO.count"));
+			 
+			 Severity messageSeverity = Severity.messageSeverity(
+					 countBlockers,
+					 countCriticals,
+					 countMajors,
+					 countMinors,
+					 countInfos);
+			 
+			 if (messageSeverity.compareTo(severityThreshold) < 0) {
+				 return; // suppress message if severity is below threshold
 			 }
-			
-			slackClient.send(hook, message);
-		}
+			 
+			 SlackAttachmentType type = SlackAttachmentType.WARNING;
+			 if (countCriticals + countBlockers > 0) {
+				 type = SlackAttachmentType.DANGER;
+			 }
+			 
+			 SlackAttachment attachment = new SlackAttachment(type);
+			 attachment.setTitle("New Rule Violations");
+			 attachment.setReasons(MessageFormat.format(
+					 "Blocker: {0}, Critical: {1}, Major: {2}, Minor: {3}, Info: {4}",
+					 countBlockers,
+					 countCriticals,
+					 countMajors,
+					 countMinors,
+					 countInfos));
+			 
+			 message.setAttachment(attachment);
+		 }
+		
+		slackClient.send(hook, message);
 	}
 	
 	private String getProjectChannel(Map<String, ProjectConfiguration> projectConfigurations, String projectKey, String defaultChannel) {
@@ -106,9 +120,12 @@ public class SlackNotificationChannel extends NotificationChannel {
 		return defaultChannel;
 	}
 
-	private static String getOrDefaultZero(String value) {
-		if (value == null || value.isEmpty()) { return "0"; }
-		return value;
+	private static int getOrDefaultZero(String value) {
+		try {
+			return Integer.parseInt(value);
+		} catch (NumberFormatException e) {
+			return 0;
+		}
 	}
 	
 	private static Map<String, ProjectConfiguration> readProjectConfigurations(Settings settings) {
