@@ -26,6 +26,7 @@ public class SlackNotificationChannelTest {
 		slackClient = Mockito.mock(SlackClient.class);
 		
 		Mockito.when(settings.getString(SlackNotifierPlugin.SLACK_HOOK)).thenReturn("test.hook");
+		Mockito.when(settings.getStringArray(SlackNotifierPlugin.SLACK_PROJECTS)).thenReturn(new String[0]);
 		Mockito.when(slackClient.toString()).thenReturn("slackClient");
 		
 		channel = new SlackNotificationChannel(slackClient, settings);
@@ -46,7 +47,7 @@ public class SlackNotificationChannelTest {
 
 	@Test
 	public void testNotificationWithChannel() {
-		Mockito.when(settings.getString(SlackNotifierPlugin.SLACK_CHANNEL)).thenReturn("test.channel");
+		Mockito.when(settings.getString(SlackNotifierPlugin.SLACK_CHANNELS_DEFAULT)).thenReturn("test.channel");
 		
 		Notification notification = new Notification(NOTIFICATION_TYPE);
 		notification.setDefaultMessage("This is the test channel message");
@@ -77,5 +78,37 @@ public class SlackNotificationChannelTest {
 		channel.deliver(notification, Mockito.anyString());
 		
 		Mockito.verify(slackClient, Mockito.never()).send(Mockito.anyString(), Mockito.any(SlackMessage.class));
+	}
+	
+	@Test
+	public void testNotificationBelowSeverityThreshold() {
+		Mockito.when(settings.getString(SlackNotifierPlugin.SLACK_CHANNELS_DEFAULT)).thenReturn("test.channel");
+		Mockito.when(settings.getString(SlackNotifierPlugin.SLACK_SEVERITY_THRESHOLD)).thenReturn("MINOR");
+		
+		Notification notification = new Notification(NOTIFICATION_TYPE);
+		notification.setDefaultMessage("This is the test channel message");
+		notification.setFieldValue("SEVERITY.INFO.count", "42");
+		
+		channel.deliver(notification, Mockito.anyString());
+		
+		Mockito.verify(slackClient, Mockito.never()).send(Mockito.anyString(), Mockito.any(SlackMessage.class));
+	}
+	
+	@Test
+	public void testNotificationOnSeverityThreshold() {
+		Mockito.when(settings.getString(SlackNotifierPlugin.SLACK_CHANNELS_DEFAULT)).thenReturn("test.channel");
+		Mockito.when(settings.getString(SlackNotifierPlugin.SLACK_SEVERITY_THRESHOLD)).thenReturn("MINOR");
+		
+		Notification notification = new Notification(NOTIFICATION_TYPE);
+		notification.setDefaultMessage("This is the test channel message");
+		notification.setFieldValue("SEVERITY.MINOR.count", "42");
+		
+		channel.deliver(notification, Mockito.anyString());
+		
+		ArgumentCaptor<SlackMessage> message = ArgumentCaptor.forClass(SlackMessage.class);
+		Mockito.verify(slackClient).send(Mockito.anyString(), message.capture());
+		
+		assertEquals("This is the test channel message", message.getValue().getShortText());
+		assertEquals("test.channel", message.getValue().getChannel());;
 	}
 }

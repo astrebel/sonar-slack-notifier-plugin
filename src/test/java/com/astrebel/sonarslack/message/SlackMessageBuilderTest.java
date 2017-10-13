@@ -58,6 +58,50 @@ public class SlackMessageBuilderTest {
 	}
 
 	@Test
+	public void testBuildAttachmentMessageWithoutReason() {
+		SlackMessage message = new SlackMessage("This is a test", "Sonar");
+		SlackAttachment attachment = new SlackAttachment(SlackAttachmentType.WARNING);
+		attachment.setTitle("TestAlert");
+		attachment.setReasons("   "); // no reason here
+		message.setAttachment(attachment);
+		
+		String result = messageBuilder.build(message);
+		
+		String expected = "{\"username\":\"Sonar\",\"text\":\"This is a test\",\"attachments\":["
+				+ "{\"text\":\"*TestAlert*\",\"color\":\"warning\",\"mrkdwn_in\": [\"text\"]}]}";
+		assertEquals("Wrong message result", expected, result);
+	}
+	
+	@Test
+	public void testBuildAttachmentMessageWithoutTitle() {
+		SlackMessage message = new SlackMessage("This is a test", "Sonar");
+		SlackAttachment attachment = new SlackAttachment(SlackAttachmentType.WARNING);
+		attachment.setTitle("   "); // no title here
+		attachment.setReasons("This is a test alert, This is another test alert");
+		message.setAttachment(attachment);
+		
+		String result = messageBuilder.build(message);
+		
+		String expected = "{\"username\":\"Sonar\",\"text\":\"This is a test\",\"attachments\":["
+				+ "{\"text\":\"*Reason:*\\n- This is a test alert\\n- This is another test alert\",\"color\":\"warning\",\"mrkdwn_in\": [\"text\"]}]}";
+		assertEquals("Wrong message result", expected, result);
+	}
+	
+	@Test
+	public void testBuildAttachmentMessageWithoutTitleAndWithoutReason() {
+		SlackMessage message = new SlackMessage("This is a test", "Sonar");
+		SlackAttachment attachment = new SlackAttachment(SlackAttachmentType.WARNING);
+		attachment.setTitle("   "); // no title here
+		attachment.setReasons("   "); // no reason here
+		message.setAttachment(attachment);
+		
+		String result = messageBuilder.build(message);
+		
+		String expected = "{\"username\":\"Sonar\",\"text\":\"This is a test\"}";
+		assertEquals("Wrong message result", expected, result);
+	}
+
+	@Test
 	public void testBuildMessageWithChannel() {
 		SlackMessage message = new SlackMessage("This is a test", "Sonar");
 		message.setChannel("TestChannel");
